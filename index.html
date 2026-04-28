@@ -840,8 +840,8 @@
             // Summary metrics
             document.getElementById('resultDemand').textContent = result.predicted_demand.toLocaleString();
             document.getElementById('resultConfidence').textContent = result.confidence_level + '%';
-            document.getElementById('resultStock').textContent = result.recommended_stock.toLocaleString();
-            document.getElementById('resultCost').textContent = '$' + result.estimated_cost.toLocaleString('en-US', {maximumFractionDigits: 0});
+            document.getElementById('resultStock').textContent = (result.recommended_stock || 0).toLocaleString();
+            document.getElementById('resultCost').textContent = '$' + (result.estimated_cost || 0).toLocaleString('en-US', {maximumFractionDigits: 0});
 
             // Monthly forecast
             let forecastHtml = '';

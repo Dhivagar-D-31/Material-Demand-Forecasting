@@ -120,6 +120,40 @@ def predict():
         })
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+    
+    
+@app.route("/")
+def home():
+    return send_from_directory(".", "index.html")
+
+
+@app.route("/api/health")
+def health():
+    return jsonify({"status": "ok", "trained": trained})
+
+
+@app.route("/api/predict", methods=["POST"])
+def predict():
+    ...
+    
+
+# ✅ ADD HERE 👇
+@app.route("/api/dataset-info")
+def dataset_info():
+    if df is None:
+        return jsonify({"error": "Dataset not loaded"}), 500
+
+    return jsonify({
+        "total_records": len(df),
+        "stores": df["Store ID"].unique().tolist(),
+        "products": df["Product ID"].unique().tolist(),
+        "categories": df["Category"].unique().tolist(),
+        "regions": df["Region"].unique().tolist(),
+        "date_range": {
+            "start": str(df["Date"].min()),
+            "end": str(df["Date"].max())
+        }
+    })
 # ✅ MODEL INFO
 @app.route("/api/model-info")
 def model_info():

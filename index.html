@@ -835,84 +835,102 @@
                 btn.innerHTML = '<span>🚀</span> <span>Generate Forecast</span>';
             }
         }
+            function displayResults(result) {
 
-        function displayResults(result) {
-            // Summary metrics
-            document.getElementById('resultDemand').textContent = result.predicted_demand.toLocaleString();
-            document.getElementById('resultConfidence').textContent = result.confidence_level + '%';
-            document.getElementById('resultStock').textContent = (result.recommended_stock || 0).toLocaleString();
-            document.getElementById('resultCost').textContent = '$' + (result.estimated_cost || 0).toLocaleString('en-US', {maximumFractionDigits: 0});
+    // ================= SUMMARY =================
+    document.getElementById('resultDemand').textContent =
+        (result.predicted_demand || 0).toLocaleString();
 
-            // Monthly forecast
-            let forecastHtml = '';
-            result.monthly_forecast.forEach(m => {
-             if (result.monthly_forecast && Array.isArray(result.monthly_forecast)) {
-    result.monthly_forecast.forEach(m => {
-        forecastHtml += `<tr>
-            <td>Month ${m.month}</td>
-            <td>${(m.forecasted_demand || 0).toLocaleString()}</td>
-            <td>${(m.lower_bound || 0).toLocaleString()} - ${(m.upper_bound || 0).toLocaleString()}</td>
-            <td>${m.recommended_action || 'N/A'}</td>
-        </tr>`;
+    document.getElementById('resultConfidence').textContent =
+        (result.confidence_level || 0) + '%';
+
+    document.getElementById('resultStock').textContent =
+        (result.recommended_stock || 0).toLocaleString();
+
+    document.getElementById('resultCost').textContent =
+        '$' + (result.estimated_cost || 0).toLocaleString('en-US', {
+            maximumFractionDigits: 0
+        });
+
+    // ================= FORECAST TABLE =================
+    let forecastHtml = '';
+
+    if (Array.isArray(result.monthly_forecast)) {
+        result.monthly_forecast.forEach(m => {
+            forecastHtml += `
+                <tr>
+                    <td>Month ${m.month}</td>
+                    <td>${(m.forecasted_demand || 0).toLocaleString()}</td>
+                    <td>
+                        ${(m.lower_bound || 0).toLocaleString()} -
+                        ${(m.upper_bound || 0).toLocaleString()}
+                    </td>
+                    <td>${m.recommended_action || 'N/A'}</td>
+                </tr>
+            `;
+        });
+    } else {
+        forecastHtml = "<tr><td colspan='4'>No forecast data available</td></tr>";
+    }
+
+    document.getElementById('forecastBody').innerHTML = forecastHtml;
+
+    // ================= RECOMMENDATIONS =================
+    let recHtml = '';
+
+    if (Array.isArray(result.recommendations)) {
+        result.recommendations.forEach(rec => {
+            recHtml += `
+                <p>
+                    <strong>${rec.icon || ''} ${rec.message || ''}</strong>
+                </p>
+            `;
+        });
+    } else {
+        recHtml = "<p>No recommendations available</p>";
+    }
+
+    document.getElementById('recommendations').innerHTML = recHtml;
+
+    // ================= CHART =================
+    if (Array.isArray(result.monthly_forecast)) {
+        createForecastChart(result.monthly_forecast);
+    }
+
+    // ================= EXTRA =================
+    fetchRecommendations({
+        Category: document.getElementById('category').value,
+        Region: document.getElementById('region').value
     });
-} else {
-    forecastHtml = "<tr><td colspan='4'>No forecast data available</td></tr>";
+
+    document.getElementById('resultsSection').classList.add('show');
 }
-            });
-            document.getElementById('forecastBody').innerHTML = forecastHtml;
-
-            // Recommendations
-            let recHtml = '';
-            result.recommendations.forEach(rec => {
-               if (result.recommendations && Array.isArray(result.recommendations)) {
-    result.recommendations.forEach(rec => {
-        recHtml += `<p><strong>${rec.icon || ''} ${rec.message?.split(':')[0] || ''}:</strong> ${rec.message?.split(':').slice(1).join(':') || ''}</p>`;
-    });
-} else {
-    recHtml = "<p>No recommendations available</p>";
-}
-            });
-            document.getElementById('recommendations').innerHTML = recHtml;
-
-            // Chart
-            createForecastChart(result.monthly_forecast);
-
-            fetchRecommendations({
-                Category: document.getElementById('category').value,
-                Region: document.getElementById('region').value
-            });
-
-            document.getElementById('resultsSection').classList.add('show');
-        }
 
         function createForecastChart(forecast) {
-            const ctx = document.getElementById('forecastChart');
-            if (!ctx) return;
+            if (!Array.isArray(forecast)) return;
 
-            if (forecastChartInstance && typeof forecastChartInstance.destroy === 'function') {
-                forecastChartInstance.destroy();
-            }
+    const ctx = document.getElementById('forecastChart');
+    if (!ctx) return;
 
-            forecastChartInstance = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: forecast.map(m => `M${m.month}`),
-                    datasets: [{
-                        label: 'Forecasted Demand',
-                        data: forecast.map(m => m.forecasted_demand),
-                        borderColor: '#667eea',
-                        backgroundColor: 'rgba(102, 126, 234, 0.1)',
-                        borderWidth: 3,
-                        fill: true,
-                        tension: 0.4
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { legend: { display: true } }
-                }
-            });
+    if (forecastChartInstance && typeof forecastChartInstance.destroy === 'function') {
+        forecastChartInstance.destroy();
+    }
+
+    forecastChartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: forecast.map(m => `M${m.month}`),
+            datasets: [{
+                label: 'Forecasted Demand',
+                data: forecast.map(m => m.forecasted_demand || 0),
+                borderColor: '#667eea',
+                backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                borderWidth: 3,
+                fill: true,
+                tension: 0.4
+            }]
+        }
+    });
         }
 
         function switchTab(name) {

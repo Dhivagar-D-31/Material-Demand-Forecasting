@@ -76,8 +76,7 @@ def preprocess():
 
 
 # ===================== LOAD ON START (IMPORTANT FOR RENDER) =====================
-load_data()
-preprocess()
+
 
 
 # ===================== FEATURE PREP =====================
@@ -113,15 +112,23 @@ def health():
 @app.route("/api/predict", methods=["POST"])
 def predict():
     try:
+        print("Predict API called")
+
         data = request.get_json()
+        print("DATA:", data)
+
         features = prepare_input(data)
         prediction = model.predict(features)[0]
 
         return jsonify({
             "success": True,
-            "predicted_demand": round(float(prediction), 2)
+            "predicted_demand": float(prediction),
+            "monthly_forecast": [],
+            "recommendations": []
         })
+
     except Exception as e:
+        print("ERROR:", str(e))
         return jsonify({"error": str(e)}), 500
 
 
@@ -176,7 +183,8 @@ def sample_data():
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-
+load_data()
+preprocess()
 # ===================== RUN =====================
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=10000)

@@ -846,19 +846,31 @@
             // Monthly forecast
             let forecastHtml = '';
             result.monthly_forecast.forEach(m => {
-                forecastHtml += `<tr>
-                    <td>Month ${m.month}</td>
-                    <td>${m.forecasted_demand.toLocaleString()}</td>
-                    <td>${m.lower_bound.toLocaleString()} - ${m.upper_bound.toLocaleString()}</td>
-                    <td>${m.recommended_action}</td>
-                </tr>`;
+             if (result.monthly_forecast && Array.isArray(result.monthly_forecast)) {
+    result.monthly_forecast.forEach(m => {
+        forecastHtml += `<tr>
+            <td>Month ${m.month}</td>
+            <td>${(m.forecasted_demand || 0).toLocaleString()}</td>
+            <td>${(m.lower_bound || 0).toLocaleString()} - ${(m.upper_bound || 0).toLocaleString()}</td>
+            <td>${m.recommended_action || 'N/A'}</td>
+        </tr>`;
+    });
+} else {
+    forecastHtml = "<tr><td colspan='4'>No forecast data available</td></tr>";
+}
             });
             document.getElementById('forecastBody').innerHTML = forecastHtml;
 
             // Recommendations
             let recHtml = '';
             result.recommendations.forEach(rec => {
-                recHtml += `<p><strong>${rec.icon} ${rec.message.split(':')[0]}:</strong> ${rec.message.split(':').slice(1).join(':').trim()}</p>`;
+               if (result.recommendations && Array.isArray(result.recommendations)) {
+    result.recommendations.forEach(rec => {
+        recHtml += `<p><strong>${rec.icon || ''} ${rec.message?.split(':')[0] || ''}:</strong> ${rec.message?.split(':').slice(1).join(':') || ''}</p>`;
+    });
+} else {
+    recHtml = "<p>No recommendations available</p>";
+}
             });
             document.getElementById('recommendations').innerHTML = recHtml;
 

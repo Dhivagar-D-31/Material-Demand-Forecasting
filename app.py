@@ -3,6 +3,7 @@ from flask_cors import CORS
 import pandas as pd
 import numpy as np
 import os
+print("FILES:", os.listdir())
 
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.preprocessing import LabelEncoder, StandardScaler
@@ -23,56 +24,85 @@ trained = False
 # ===================== LOAD DATA =====================
 def load_data():
     global df
-    path = os.path.join(os.path.dirname(__file__), "retail_store_inventory.csv")
-    df = pd.read_csv(path)
-    print("Dataset loaded:", df.shape)
+    try:
+        path = "retail_store_inventory.csv"
 
+        print("📂 Files available:", os.listdir())
 
+        df = pd.read_csv(path)
+        print("✅ Dataset loaded:", df.shape)
+
+    except Exception as e:
+        print("❌ DATA LOAD ERROR:", str(e))
+        df = None
 # ===================== PREPROCESS =====================
 def preprocess():
     global df, model, scaler, label_encoders, feature_columns, trained
 
-    data = df.copy()
+    if df is None:
+        print("❌ No dataset loaded. Skipping preprocessing.")
+        trained = False
+        return
 
-    # Drop unnecessary columns
-    data.drop(["Store ID", "Product ID"], axis=1, inplace=True)
+    try:
+        data = df.copy()
 
-    # Date features
-    data["Date"] = pd.to_datetime(data["Date"])
-    data["Year"] = data["Date"].dt.year
-    data["Month"] = data["Date"].dt.month
-    data["Day"] = data["Date"].dt.day
-    data["DayOfWeek"] = data["Date"].dt.dayofweek
-    data["Quarter"] = data["Date"].dt.quarter
-    data.drop("Date", axis=1, inplace=True)
+        # Drop unnecessary columns safely
+        for col in ["Store ID", "Product ID"]:
+            if col in data.columns:
+                data.drop(col, axis=1, inplace=True)
 
-    # Remove leakage column
-    if "Units Sold" in data.columns:
-        data.drop("Units Sold", axis=1, inplace=True)
+        # Date features
+        if "Date" in data.columns:
+            data["Date"] = pd.to_datetime(data["Date"], errors="coerce")
+            data["Year"] = data["Date"].dt.year
+            data["Month"] = data["Date"].dt.month
+            data["Day"] = data["Date"].dt.day
+            data["DayOfWeek"] = data["Date"].dt.dayofweek
+            data["Quarter"] = data["Date"].dt.quarter
+            data.drop("Date", axis=1, inplace=True)
 
-    # Encode categorical
-    for col in data.select_dtypes(include="object").columns:
-        le = LabelEncoder()
-        data[col] = le.fit_transform(data[col].astype(str))
-        label_encoders[col] = le
+        # Remove leakage column safely
+        if "Units Sold" in data.columns:
+            data.drop("Units Sold", axis=1, inplace=True)
 
-    y = data["Demand Forecast"]
-    X = data.drop("Demand Forecast", axis=1)
+        # Encode categorical columns safely
+        for col in data.select_dtypes(include="object").columns:
+            le = LabelEncoder()
+            data[col] = le.fit_transform(data[col].astype(str))
+            label_encoders[col] = le
 
-    feature_columns = X.columns.tolist()
+        # Target
+        if "Demand Forecast" not in data.columns:
+            print("❌ Target column missing")
+            trained = False
+            return
 
-    X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=0.2, random_state=42
-    )
+        y = data["Demand Forecast"]
+        X = data.drop("Demand Forecast", axis=1)
 
-    scaler = StandardScaler()
-    X_train = scaler.fit_transform(X_train)
+        feature_columns = X.columns.tolist()
 
-    model = RandomForestRegressor(n_estimators=100, max_depth=20)
-    model.fit(X_train, y_train)
+        # Train/test split
+        X_train, X_test, y_train, y_test = train_test_split(
+            X, y, test_size=0.2, random_state=42
+        )
 
-    trained = True
-    print("Model trained ✅")
+        # Scaling
+        scaler = StandardScaler()
+        X_train = scaler.fit_transform(X_train)
+        X_test = scaler.transform(X_test)
+
+        # Model
+        model = RandomForestRegressor(n_estimators=100, max_depth=20)
+        model.fit(X_train, y_train)
+
+        trained = True
+        print("✅ Model trained successfully")
+
+    except Exception as e:
+        print("❌ PREPROCESS ERROR:", str(e))
+        trained = False
 
 
 # ===================== LOAD ON START (IMPORTANT FOR RENDER) =====================

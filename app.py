@@ -120,8 +120,21 @@ def predict():
         })
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+# ✅ MODEL INFO
+@app.route("/api/model-info")
+def model_info():
+    return jsonify({
+        "total_features": len(feature_columns),
+        "model": "Random Forest"
+    })
 
 
+# ✅ ANALYTICS
+@app.route("/api/analytics")
+def analytics():
+    return jsonify({
+        "total_records": len(df)
+    })
 # ===================== RUN =====================
 if __name__ == "__main__":
     load_data()

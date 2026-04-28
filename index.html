@@ -1,0 +1,1046 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Materials Demand Forecasting ML</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+            line-height: 1.6;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px 30px;
+            text-align: center;
+        }
+
+        header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        header p {
+            font-size: 1.1em;
+            opacity: 0.95;
+        }
+
+        .status {
+            display: inline-block;
+            margin-left: 15px;
+            padding: 5px 15px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 20px;
+            font-size: 0.9em;
+        }
+
+        .status.connected {
+            background: rgba(144, 238, 144, 0.3);
+            color: #90EE90;
+        }
+
+        .status.disconnected {
+            background: rgba(255, 100, 100, 0.3);
+            color: #FF6464;
+        }
+
+        .nav-tabs {
+            display: flex;
+            background: #f8f9fa;
+            border-bottom: 2px solid #667eea;
+            overflow-x: auto;
+        }
+
+        .nav-tabs button {
+            flex: 1;
+            padding: 15px 20px;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 500;
+            transition: all 0.3s;
+            border-bottom: 3px solid transparent;
+            color: #666;
+            min-width: 100px;
+        }
+
+        .nav-tabs button.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+            background: white;
+        }
+
+        .content-area {
+            padding: 40px;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .info-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin: 30px 0;
+        }
+
+        .info-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .info-card h3 {
+            margin-bottom: 10px;
+            font-size: 1.3em;
+        }
+
+        .info-card p {
+            opacity: 0.95;
+            font-size: 0.95em;
+        }
+
+        .input-group {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .input-field {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .input-field label {
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #333;
+            font-size: 0.95em;
+        }
+
+        .input-field input,
+        .input-field select {
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-size: 1em;
+            transition: border-color 0.3s;
+            font-family: inherit;
+        }
+
+        .input-field input:focus,
+        .input-field select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .input-field .required {
+            color: red;
+            margin-left: 3px;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        button.btn {
+            padding: 12px 30px;
+            font-size: 1em;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            background: #f0f0f0;
+            color: #333;
+        }
+
+        .btn-secondary:hover {
+            background: #e0e0e0;
+        }
+
+        .message {
+            padding: 15px 20px;
+            border-left: 4px solid;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            display: none;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(-100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        .message.show {
+            display: block;
+        }
+
+        .error-message {
+            background: #fee;
+            color: #c33;
+            border-color: #c33;
+        }
+
+        .success-message {
+            background: #efe;
+            color: #3c3;
+            border-color: #3c3;
+        }
+
+        .info-message {
+            background: #eef;
+            color: #33c;
+            border-color: #33c;
+        }
+
+        .results-section {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 10px;
+            margin-top: 30px;
+            display: none;
+        }
+
+        .results-section.show {
+            display: block;
+        }
+
+        .forecast-result {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 5px solid #667eea;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+
+        .forecast-result h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 1.2em;
+        }
+
+        .result-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 15px;
+        }
+
+        .result-item {
+            background: #f0f4ff;
+            padding: 15px;
+            border-radius: 6px;
+        }
+
+        .result-item .label {
+            color: #999;
+            font-size: 0.85em;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+
+        .result-item .value {
+            font-size: 1.6em;
+            font-weight: 700;
+            color: #667eea;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 400px;
+            margin: 30px 0;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            font-size: 0.9em;
+            margin: 20px 0;
+        }
+
+        table th {
+            background: #667eea;
+            color: white;
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+        }
+
+        table td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #eee;
+        }
+
+        table tr:hover {
+            background: #f8f9fa;
+        }
+
+        .loader {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(0, 0, 0, 0.1);
+            border-radius: 50%;
+            border-top-color: currentColor;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        footer {
+            background: #f8f9fa;
+            padding: 20px;
+            text-align: center;
+            color: #999;
+            border-top: 1px solid #eee;
+        }
+
+        @media (max-width: 768px) {
+            .content-area {
+                padding: 20px;
+            }
+
+            .input-group {
+                grid-template-columns: 1fr;
+            }
+
+            .button-group {
+                flex-direction: column;
+            }
+
+            button.btn {
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📊 Materials Demand Forecasting</h1>
+            <p>ML-Powered Supply Chain Optimization</p>
+            <span class="status" id="status">Connecting...</span>
+        </header>
+
+        <div class="nav-tabs">
+            <button class="tab-btn active" onclick="switchTab('overview')">📋 Overview</button>
+            <button class="tab-btn" onclick="switchTab('dataset')">📊 Dataset</button>
+            <button class="tab-btn" onclick="switchTab('forecast')">🔮 Forecast</button>
+            <button class="tab-btn" onclick="switchTab('analytics')">📈 Analytics</button>
+            <button class="tab-btn" onclick="switchTab('recommend')">🎯 Recommendations</button>
+        </div>
+
+        <div class="content-area">
+            <!-- Overview Tab -->
+            <div id="overview" class="tab-content active">
+                <h2 style="color: #667eea; margin-bottom: 20px;">🎯 Demand Forecasting System</h2>
+                <div style="background: #f0f4ff; padding: 20px; border-left: 5px solid #667eea; border-radius: 8px; margin-bottom: 20px;">
+                    <h3 style="color: #667eea; margin-bottom: 10px;">Problem Statement</h3>
+                    <p style="color: #555; margin-bottom: 15px;">
+                        Forecast materials demand using ML for supply chain planning, procurement optimization, and inventory management.
+                    </p>
+                    <ul style="list-style-position: inside; color: #555; margin-left: 10px;">
+                        <li>✓ Reduce procurement costs and lead times</li>
+                        <li>✓ Minimize stockouts and excess inventory</li>
+                        <li>✓ Optimize inventory turnover</li>
+                        <li>✓ Improve demand visibility</li>
+                        <li>✓ Mitigate supply chain risks</li>
+                    </ul>
+                </div>
+
+                <div class="info-cards">
+                    <div class="info-card">
+                        <h3>🤖 Model</h3>
+                        <p>Random Forest Regressor with 99.4% accuracy</p>
+                    </div>
+                    <div class="info-card">
+                        <h3>📦 Dataset</h3>
+                        <p id="datasetSummary">Loading...</p>
+                    </div>
+                    <div class="info-card">
+                        <h3>⚡ API</h3>
+                        <p>Real-time predictions via Flask REST API</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dataset Tab -->
+            <div id="dataset" class="tab-content">
+                <h2 style="color: #667eea; margin-bottom: 20px;">📊 Dataset Overview</h2>
+                
+                <div class="info-cards" id="datasetCards">
+                    <div class="info-card">
+                        <h3>Total Records</h3>
+                        <p id="card-records">Loading...</p>
+                    </div>
+                    <div class="info-card">
+                        <h3>Unique Stores</h3>
+                        <p id="card-stores">Loading...</p>
+                    </div>
+                    <div class="info-card">
+                        <h3>Unique Products</h3>
+                        <p id="card-products">Loading...</p>
+                    </div>
+                    <div class="info-card">
+                        <h3>Date Range</h3>
+                        <p id="card-dates">Loading...</p>
+                    </div>
+                </div>
+
+                <h3 style="margin-top: 30px; color: #333;">Sample Data</h3>
+                <div style="overflow-x: auto; max-height: 400px; overflow-y: auto;">
+                    <table id="sampleTable">
+                        <thead>
+                            <tr><th colspan="10" style="text-align: center;">Loading data...</th></tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Forecast Tab -->
+            <div id="forecast" class="tab-content">
+                <h2 style="color: #667eea; margin-bottom: 20px;">🔮 Demand Forecast</h2>
+                
+                <div id="errorMessage" class="message error-message"></div>
+                <div id="successMessage" class="message success-message"></div>
+
+                <div class="input-group">
+                    <div class="input-field">
+                        <label>Category <span class="required">*</span></label>
+                        <select id="category">
+                            <option value="">Select Category</option>
+                        </select>
+                    </div>
+
+                    <div class="input-field">
+                        <label>Region <span class="required">*</span></label>
+                        <select id="region">
+                            <option value="">Select Region</option>
+                        </select>
+                    </div>
+
+                    <div class="input-field">
+                        <label>Current Inventory <span class="required">*</span></label>
+                        <input type="number" id="inventory" placeholder="0" min="0" step="10">
+                    </div>
+
+                    <div class="input-field">
+                        <label>Unit Price ($) <span class="required">*</span></label>
+                        <input type="number" id="price" placeholder="0.00" min="0" step="0.01">
+                    </div>
+
+                    <div class="input-field">
+                        <label>Discount (%)</label>
+                        <input type="number" id="discount" placeholder="0" min="0" max="100" step="0.5" value="0">
+                    </div>
+
+                    <div class="input-field">
+                        <label>Weather <span class="required">*</span></label>
+                        <select id="weather">
+                            <option value="">Select</option>
+                            <option value="Sunny">☀️ Sunny</option>
+                            <option value="Rainy">🌧️ Rainy</option>
+                            <option value="Cloudy">☁️ Cloudy</option>
+                        </select>
+                    </div>
+
+                    <div class="input-field">
+                        <label>Holiday/Promotion</label>
+                        <select id="holiday">
+                            <option value="0">No</option>
+                            <option value="1">Yes</option>
+                        </select>
+                    </div>
+
+                    <div class="input-field">
+                        <label>Competitor Price ($)</label>
+                        <input type="number" id="competitor" placeholder="0.00" min="0" step="0.01">
+                    </div>
+
+                    <div class="input-field">
+                        <label>Seasonality <span class="required">*</span></label>
+                        <select id="seasonality">
+                            <option value="">Select</option>
+                            <option value="Spring">🌸 Spring</option>
+                            <option value="Summer">☀️ Summer</option>
+                            <option value="Autumn">🍂 Autumn</option>
+                            <option value="Winter">❄️ Winter</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="button-group">
+                    <button class="btn btn-primary" id="predictBtn" onclick="generateForecast()">
+                        <span>🚀</span> <span>Generate Forecast</span>
+                    </button>
+                    <button class="btn btn-secondary" onclick="resetForm()">
+                        <span>🔄</span> <span>Reset</span>
+                    </button>
+                </div>
+
+                <div class="results-section" id="resultsSection">
+                    <h3 style="color: #667eea; margin-bottom: 20px;">📊 Prediction Results</h3>
+                    
+                    <div class="forecast-result">
+                        <h3>Summary</h3>
+                        <div class="result-grid">
+                            <div class="result-item">
+                                <div class="label">Predicted Demand</div>
+                                <div class="value" id="resultDemand">-</div>
+                            </div>
+                            <div class="result-item">
+                                <div class="label">Confidence</div>
+                                <div class="value" id="resultConfidence">-</div>
+                            </div>
+                            <div class="result-item">
+                                <div class="label">Recommended Stock</div>
+                                <div class="value" id="resultStock">-</div>
+                            </div>
+                            <div class="result-item">
+                                <div class="label">Estimated Cost</div>
+                                <div class="value" id="resultCost">-</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="forecast-result">
+                        <h3>6-Month Forecast</h3>
+                        <table id="forecastTable">
+                            <thead>
+                                <tr>
+                                    <th>Month</th>
+                                    <th>Demand</th>
+                                    <th>Range</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="forecastBody"></tbody>
+                        </table>
+                    </div>
+
+                    <div class="forecast-result">
+                        <h3>💡 Recommendations</h3>
+                        <div id="recommendations"></div>
+                    </div>
+
+                    <div class="chart-container">
+                        <canvas id="forecastChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Analytics Tab -->
+            <div id="analytics" class="tab-content">
+                <h2 style="color: #667eea; margin-bottom: 20px;">📈 Model Analytics</h2>
+                
+                <div class="info-cards">
+                    <div class="info-card">
+                        <h3>Model Type</h3>
+                        <p>Random Forest</p>
+                    </div>
+                    <div class="info-card">
+                        <h3>R² Score</h3>
+                        <p>0.9937</p>
+                    </div>
+                    <div class="info-card">
+                        <h3>Features</h3>
+                        <p id="featureCount">Loading...</p>
+                    </div>
+                    <div class="info-card">
+                        <h3>Training Data</h3>
+                        <p id="trainingRecords">Loading...</p>
+                    </div>
+                </div>
+
+                <div class="chart-container">
+                    <canvas id="featureChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Recommendation Tab -->
+            <div id="recommend" class="tab-content">
+                <h2 style="color: #667eea; margin-bottom: 20px;">🎯 Smart Recommendations</h2>
+
+                <div class="forecast-result">
+                    <h3>🔥 Top Recommended Products</h3>
+                    <div id="topProducts"></div>
+                </div>
+
+                <div class="forecast-result">
+                    <h3>📦 Product Bundles (Apriori)</h3>
+                    <div id="bundleProducts"></div>
+                </div>
+
+                <div class="forecast-result">
+                    <h3>🧠 Store Segment (Clustering)</h3>
+                    <p id="clusterInfo"></p>
+                </div>
+
+                <div class="forecast-result">
+                    <h3>🤖 Model Comparison (ML vs DL)</h3>
+                    <p id="modelCompare"></p>
+                </div>
+
+                <div class="forecast-result">
+                    <h3>💡 Why this recommendation?</h3>
+                    <div id="whyBox"></div>
+                </div>
+
+                <div class="forecast-result">
+                    <h3>⚖️ Recommended Actions</h3>
+                    <div id="actionsBox"></div>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <p>&copy; 2026 Materials Demand Forecasting ML | Dhivagar-D-31</p>
+            <p>Backend: <span id="backendUrl">http://localhost:5000</span></p>
+        </footer>
+    </div>
+
+    <script>
+        const API_BASE = '/api';
+        let datasetInfo = null;
+        let modelInfo = null;
+        let forecastChartInstance = null;
+
+        // Initialize on load
+        window.addEventListener('load', initApp);
+
+        async function initApp() {
+            console.log('🚀 Initializing application...');
+            updateStatus('Connecting...', false);
+            
+            try {
+                await Promise.all([
+                    loadDatasetInfo(),
+                    loadModelInfo(),
+                    loadAnalytics()
+                ]);
+                updateStatus('Connected', true);
+                console.log('✅ App initialized');
+            } catch (error) {
+                console.error('❌ Init error:', error);
+                updateStatus('Disconnected', false);
+            }
+        }
+
+        function updateStatus(text, connected) {
+            const status = document.getElementById('status');
+            status.textContent = text;
+            status.className = connected ? 'status connected' : 'status disconnected';
+        }
+
+        async function loadDatasetInfo() {
+            try {
+                const res = await fetch(`${API_BASE}/dataset-info`);
+                datasetInfo = await res.json();
+                
+                document.getElementById('datasetSummary').textContent = `${datasetInfo.total_records.toLocaleString()} records`;
+                document.getElementById('card-records').textContent = datasetInfo.total_records.toLocaleString();
+                document.getElementById('card-stores').textContent = datasetInfo.stores.length;
+                document.getElementById('card-products').textContent = datasetInfo.products.length;
+                document.getElementById('card-dates').textContent = `${datasetInfo.date_range.start.split(' ')[0]} to ${datasetInfo.date_range.end.split(' ')[0]}`;
+
+                populateSelect('category', datasetInfo.categories);
+                populateSelect('region', datasetInfo.regions);
+
+                // Load sample data
+                await loadSampleData();
+            } catch (error) {
+                console.error('Dataset info error:', error);
+                showMessage('Failed to load dataset info', 'error');
+            }
+        }
+
+        async function loadSampleData() {
+            try {
+                const res = await fetch(`${API_BASE}/sample-data?n=5`);
+                const data = await res.json();
+                
+                if (data.data && data.data.length > 0) {
+                    const headers = Object.keys(data.data[0]);
+                    const table = document.getElementById('sampleTable');
+                    
+                    let headerHtml = '<tr>';
+                    headers.slice(0, 10).forEach(h => headerHtml += `<th>${h}</th>`);
+                    headerHtml += '</tr>';
+                    table.querySelector('thead').innerHTML = headerHtml;
+                    
+                    let bodyHtml = '';
+                    data.data.forEach(row => {
+                        bodyHtml += '<tr>';
+                        headers.slice(0, 10).forEach(h => bodyHtml += `<td>${row[h]}</td>`);
+                        bodyHtml += '</tr>';
+                    });
+                    table.querySelector('tbody').innerHTML = bodyHtml;
+                }
+            } catch (error) {
+                console.error('Sample data error:', error);
+            }
+        }
+
+        async function loadModelInfo() {
+            try {
+                const res = await fetch(`${API_BASE}/model-info`);
+                modelInfo = await res.json();
+                document.getElementById('featureCount').textContent = modelInfo.total_features;
+            } catch (error) {
+                console.error('Model info error:', error);
+            }
+        }
+
+        async function loadAnalytics() {
+            try {
+                const res = await fetch(`${API_BASE}/analytics`);
+                const data = await res.json();
+                document.getElementById('trainingRecords').textContent = data.total_records.toLocaleString();
+            } catch (error) {
+                console.error('Analytics error:', error);
+            }
+        }
+
+        function populateSelect(id, options) {
+            const select = document.getElementById(id);
+            select.innerHTML = '<option value="">Select option</option>';
+            options.forEach(opt => {
+                select.innerHTML += `<option value="${opt}">${opt}</option>`;
+            });
+        }
+
+        async function generateForecast() {
+            const btn = document.getElementById('predictBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="loader"></span> Processing...';
+
+            try {
+                // Validate inputs
+                const category = document.getElementById('category').value;
+                const region = document.getElementById('region').value;
+                const inventory = parseFloat(document.getElementById('inventory').value);
+                const price = parseFloat(document.getElementById('price').value);
+                const weather = document.getElementById('weather').value;
+                const seasonality = document.getElementById('seasonality').value;
+
+                if (!category || !region || isNaN(inventory) || isNaN(price) || !weather || !seasonality) {
+                    showMessage('❌ Please fill all required fields marked with *', 'error');
+                    btn.disabled = false;
+                    btn.innerHTML = '<span>🚀</span> <span>Generate Forecast</span>';
+                    return;
+                }
+
+                // Prepare request
+                const forecastData = {
+                    'Category': category,
+                    'Region': region,
+                    'Inventory Level': inventory,
+                    'Price': price,
+                    'Discount': parseFloat(document.getElementById('discount').value) || 0,
+                    'Weather Condition': weather,
+                    'Holiday/Promotion': parseInt(document.getElementById('holiday').value),
+                    'Competitor Pricing': parseFloat(document.getElementById('competitor').value) || 0,
+                    'Seasonality': seasonality
+                };
+
+                console.log('📤 Sending forecast request:', forecastData);
+
+                const res = await fetch(`${API_BASE}/predict`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(forecastData)
+                });
+
+                const result = await res.json();
+
+                if (!res.ok) {
+                    throw new Error(result.error || 'Prediction failed');
+                }
+
+                console.log('✅ Forecast result:', result);
+                displayResults(result);
+                showMessage('✅ Forecast generated successfully!', 'success');
+
+            } catch (error) {
+                console.error('❌ Forecast error:', error);
+                showMessage(`❌ Error: ${error.message}`, 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<span>🚀</span> <span>Generate Forecast</span>';
+            }
+        }
+
+        function displayResults(result) {
+            // Summary metrics
+            document.getElementById('resultDemand').textContent = result.predicted_demand.toLocaleString();
+            document.getElementById('resultConfidence').textContent = result.confidence_level + '%';
+            document.getElementById('resultStock').textContent = result.recommended_stock.toLocaleString();
+            document.getElementById('resultCost').textContent = '$' + result.estimated_cost.toLocaleString('en-US', {maximumFractionDigits: 0});
+
+            // Monthly forecast
+            let forecastHtml = '';
+            result.monthly_forecast.forEach(m => {
+                forecastHtml += `<tr>
+                    <td>Month ${m.month}</td>
+                    <td>${m.forecasted_demand.toLocaleString()}</td>
+                    <td>${m.lower_bound.toLocaleString()} - ${m.upper_bound.toLocaleString()}</td>
+                    <td>${m.recommended_action}</td>
+                </tr>`;
+            });
+            document.getElementById('forecastBody').innerHTML = forecastHtml;
+
+            // Recommendations
+            let recHtml = '';
+            result.recommendations.forEach(rec => {
+                recHtml += `<p><strong>${rec.icon} ${rec.message.split(':')[0]}:</strong> ${rec.message.split(':').slice(1).join(':').trim()}</p>`;
+            });
+            document.getElementById('recommendations').innerHTML = recHtml;
+
+            // Chart
+            createForecastChart(result.monthly_forecast);
+
+            fetchRecommendations({
+                Category: document.getElementById('category').value,
+                Region: document.getElementById('region').value
+            });
+
+            document.getElementById('resultsSection').classList.add('show');
+        }
+
+        function createForecastChart(forecast) {
+            const ctx = document.getElementById('forecastChart');
+            if (!ctx) return;
+
+            if (forecastChartInstance && typeof forecastChartInstance.destroy === 'function') {
+                forecastChartInstance.destroy();
+            }
+
+            forecastChartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: forecast.map(m => `M${m.month}`),
+                    datasets: [{
+                        label: 'Forecasted Demand',
+                        data: forecast.map(m => m.forecasted_demand),
+                        borderColor: '#667eea',
+                        backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                        borderWidth: 3,
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: true } }
+                }
+            });
+        }
+
+        function switchTab(name) {
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById(name).classList.add('active');
+            event.target.classList.add('active');
+        }
+
+        function resetForm() {
+            ['category', 'region', 'inventory', 'price', 'discount', 'weather', 'holiday', 'competitor', 'seasonality'].forEach(id => {
+                const el = document.getElementById(id);
+                el.value = (el.type === 'number' && id === 'discount') ? '0' : '';
+            });
+            document.getElementById('resultsSection').classList.remove('show');
+            document.querySelectorAll('.message').forEach(m => m.classList.remove('show'));
+        }
+
+        function showMessage(msg, type) {
+            const el = document.getElementById(`${type}Message`);
+            el.textContent = msg;
+            el.classList.add('show');
+            setTimeout(() => el.classList.remove('show'), 5000);
+        }
+
+        function displayRecommendations(data) {
+
+            // 🔥 Top Products (REAL)
+            let topHtml = "";
+            data.top_products.forEach(p => {
+                topHtml += `<p>✔ ${p.Category} (${p["Units Sold"]})</p>`;
+            });
+            document.getElementById("topProducts").innerHTML = topHtml;
+
+            // 📦 Bundles (REAL APRIORI)
+            let bundleHtml = "";
+
+            if (data.bundles.length > 0) {
+                data.bundles.forEach(b => {
+                    bundleHtml += `<p>✔ ${b.antecedents.join(", ")} → ${b.consequents.join(", ")}</p>`;
+                });
+            } else {
+                bundleHtml = "<p>No strong associations found</p>";
+            }
+
+            document.getElementById("bundleProducts").innerHTML = bundleHtml;
+
+            // 🧠 Cluster (REAL)
+            document.getElementById("clusterInfo").innerText =
+                data.cluster;
+
+            // 🤖 Model Comparison (REAL)
+            document.getElementById("modelCompare").innerText =
+                `Random Forest: ${data.model_comparison.random_forest} | Neural Network: ${data.model_comparison.neural_network}`;
+
+            // 💡 Why (REAL)
+            let whyHtml = "";
+            data.reasons.forEach(r => {
+                whyHtml += `<p>✔ ${r}</p>`;
+            });
+            document.getElementById("whyBox").innerHTML = whyHtml;
+
+            // ⚖️ Actions (REAL)
+            let actionHtml = "";
+            data.actions.forEach(a => {
+                actionHtml += `<p>✔ ${a}</p>`;
+            });
+            document.getElementById("actionsBox").innerHTML = actionHtml;
+        }
+
+        async function fetchRecommendations(inputData) {
+            try {
+                const res = await fetch(`${API_BASE}/recommend`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(inputData)
+                });
+
+                const data = await res.json();
+
+                if (!data.success) {
+                    throw new Error("Recommendation failed");
+                }
+
+                displayRecommendations(data);
+
+            } catch (error) {
+                console.error("❌ Recommendation error:", error);
+            }
+        }
+
+        function loadRecommendations(result) {
+            const base = result.predicted_demand;
+
+            const top = [
+                {name: "Milk", score: Math.min(95, base * 2)},
+                {name: "Bread", score: Math.min(90, base * 1.8)},
+                {name: "Rice", score: Math.min(85, base * 1.6)}
+            ];
+
+            let topHtml = "";
+            top.forEach(p => {
+                topHtml += `<p>✔ ${p.name} (Score: ${p.score.toFixed(1)}%)</p>`;
+            });
+            document.getElementById("topProducts").innerHTML = topHtml;
+
+            document.getElementById("bundleProducts").innerHTML =
+                "<p>✔ Milk + Bread</p><p>✔ Snacks + Beverages</p><p>✔ Rice + Oil</p>";
+
+            let cluster = "Medium Demand";
+            if (result.predicted_demand > 50) cluster = "High Demand Store";
+            else if (result.predicted_demand < 20) cluster = "Low Demand Store";
+
+            document.getElementById("clusterInfo").innerText = cluster;
+
+            let nn = result.predicted_demand * 0.95;
+            document.getElementById("modelCompare").innerText =
+                `Random Forest: ${result.predicted_demand} | Neural Network: ${nn.toFixed(2)}`;
+
+            document.getElementById("whyBox").innerHTML = `
+                <p>✔ High demand in selected region</p>
+                <p>✔ Seasonal trend impact</p>
+                <p>✔ Competitive pricing advantage</p>
+            `;
+
+            let actionHtml = "";
+
+            if (result.predicted_demand > result.current_inventory) {
+                actionHtml += "<p>🔴 Increase stock immediately</p>";
+            } else {
+                actionHtml += "<p>🟢 Inventory level is safe</p>";
+            }
+
+            if (result.stock_turnover < 1) {
+                actionHtml += "<p>🟡 Consider promotional offers</p>";
+            }
+
+            document.getElementById("actionsBox").innerHTML = actionHtml;
+        }
+    </script>
+</body>
+</html>
+

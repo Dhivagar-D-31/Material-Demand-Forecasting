@@ -162,7 +162,20 @@ def analytics():
     return jsonify({
         "total_records": len(df)
     })
+@app.route("/api/sample-data")
+def sample_data():
+    try:
+        n = int(request.args.get("n", 5))
 
+        if df is None:
+            return jsonify({"error": "Dataset not loaded"}), 500
+
+        return jsonify({
+            "data": df.head(n).to_dict(orient="records")
+        })
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 # ===================== RUN =====================
 if __name__ == "__main__":

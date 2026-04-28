@@ -9,8 +9,9 @@ from sklearn.preprocessing import LabelEncoder, StandardScaler
 from sklearn.model_selection import train_test_split
 
 app = Flask(__name__, static_folder=".")
-CORS(app)  # still enabled (safe)
+CORS(app)
 
+# ===================== GLOBAL VARIABLES =====================
 df = None
 model = None
 scaler = None
@@ -33,10 +34,10 @@ def preprocess():
 
     data = df.copy()
 
-    # DROP useless columns
+    # Drop unnecessary columns
     data.drop(["Store ID", "Product ID"], axis=1, inplace=True)
 
-    # DATE FEATURES
+    # Date features
     data["Date"] = pd.to_datetime(data["Date"])
     data["Year"] = data["Date"].dt.year
     data["Month"] = data["Date"].dt.month
@@ -45,11 +46,11 @@ def preprocess():
     data["Quarter"] = data["Date"].dt.quarter
     data.drop("Date", axis=1, inplace=True)
 
-    # 🔴 REMOVE leakage column (IMPORTANT FIX)
+    # Remove leakage column
     if "Units Sold" in data.columns:
         data.drop("Units Sold", axis=1, inplace=True)
 
-    # ENCODE categorical
+    # Encode categorical
     for col in data.select_dtypes(include="object").columns:
         le = LabelEncoder()
         data[col] = le.fit_transform(data[col].astype(str))
@@ -66,13 +67,17 @@ def preprocess():
 
     scaler = StandardScaler()
     X_train = scaler.fit_transform(X_train)
-    X_test = scaler.transform(X_test)
 
     model = RandomForestRegressor(n_estimators=100, max_depth=20)
     model.fit(X_train, y_train)
 
     trained = True
     print("Model trained ✅")
+
+
+# ===================== LOAD ON START (IMPORTANT FOR RENDER) =====================
+load_data()
+preprocess()
 
 
 # ===================== FEATURE PREP =====================
@@ -90,9 +95,7 @@ def prepare_input(data):
             input_df[col] = 0
 
     input_df = input_df[feature_columns]
-    input_scaled = scaler.transform(input_df)
-
-    return input_scaled
+    return scaler.transform(input_df)
 
 
 # ===================== ROUTES =====================
@@ -120,24 +123,9 @@ def predict():
         })
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-    
-    
-@app.route("/")
-def home():
-    return send_from_directory(".", "index.html")
 
 
-@app.route("/api/health")
-def health():
-    return jsonify({"status": "ok", "trained": trained})
-
-
-@app.route("/api/predict", methods=["POST"])
-def predict():
-    ...
-    
-
-# ✅ ADD HERE 👇
+# ✅ DATASET INFO
 @app.route("/api/dataset-info")
 def dataset_info():
     if df is None:
@@ -154,6 +142,8 @@ def dataset_info():
             "end": str(df["Date"].max())
         }
     })
+
+
 # ✅ MODEL INFO
 @app.route("/api/model-info")
 def model_info():
@@ -166,11 +156,14 @@ def model_info():
 # ✅ ANALYTICS
 @app.route("/api/analytics")
 def analytics():
+    if df is None:
+        return jsonify({"error": "Dataset not loaded"}), 500
+
     return jsonify({
         "total_records": len(df)
     })
+
+
 # ===================== RUN =====================
 if __name__ == "__main__":
-    load_data()
-    preprocess()
     app.run(host="0.0.0.0", port=10000)
